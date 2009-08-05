@@ -1,0 +1,12 @@
+Sigil v0.1.1 <ADD DATE>
+	- choosing 'cancel' in TOC editor now no longer forces the views to update
+	- fixed bug with new headings getting existing IDs. (issue #36)
+	- printing support! new file menu actions: "print" and "print preview"
+	- fixed an issue when sometimes switching between views didn't enable/disable appropriate actions
+	- fixed an issue with mixed-up CSS classes on Mac and Linux (issue #16)
+	- added line numbering for Code View (issue #9)
+	- added current line highlighting for Code View 
+	- fixed crashed bug with some calibre generated epubs (issue #16)
+
+Sigil v0.1.0  2009.8.1.
+	- initial release
