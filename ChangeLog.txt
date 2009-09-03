@@ -1,0 +1,81 @@
+Sigil v0.1.4 <ADD DATE>
+    - fixed rare issue with SGF importing that displayed all body text underlined (issue #118)
+    - added support for importing images referenced in SVG elements in HTML import
+    - HTML importing now defaults to a locale-aware codec if one is not detected in the HTML stream;
+    previously the fallback codec was UTF-8; this change should improve importing of old HTML
+    documents (issue #113)
+
+Sigil v0.1.3 2009.09.02.
+    - implemented a work-around for a bug in Qt causing documents with "us-ascii" encoding
+    specified in the XML declaration to crash Sigil (issue #109)
+    - resource path updating rewritten; should be more robust
+    - fixed an issue where EPUB files from Google Books could not be opened (issue #106)
+    - fixed regression for storing the folder from which the user last imported an image (issue #105)  
+    - refactored HTML file import resource loading: should be a lot more robust now
+    - fixed an issue with loading HTML files that reference the same images multiple times (issue #90)
+    - implemented non-live View position synchronization; the Views are now synced
+    by HTML element: moving the caret in one View will center the other View (upon switching)
+    to the same HTML element that held the caret in the first View (issue #8)
+    - newlines are now removed from TOC headings to avoid rendering problems in ADE (issue #96)
+    - Sigil now creates a unique book identifier (if one is not provided by the user)
+    using the UUID standard instead of a radnom sequence of characters and numbers;
+    the old "SigilGEN" scheme is replaced with "UUID"
+    - initial support for calibre interoperability (issue #94)
+    - book updates from TOC editor are now faster and have a much smaller memory overhead
+    - fixed issue with removing headings from TOC in TOC editor (issue #88, part 2 and issue #21);
+    also made TOC editor updates to headings MUCH more robust
+    - all headings are now by default included in TOC... heuristics for "guessing" which
+    headings the users wants have been removed (issue #88, part 1)
+    - fixed critical issue with Sigil hanging when loading certain SGF files (issue #87)
+    - fixed rare issue with duplicate image loading (issue #86)
+    - implemented a workaround for a webkit bug causing the first character of a heading
+    created after a chapter break to be displayed incorrectly (issue #78)
+    - the "makedmg" target for Macs is not build by default anymore and needs to be
+    invoked directly; this was done to speed rebuilds
+    - Macs now have a standard multiple document interface: opening a new file opens it
+    in a new window, not in the old one (issue #22)
+    - fixed a bug with warning dialog not informing the user of unsaved changes
+    if he tried to load from the recent files list
+
+Sigil v0.1.2 2009.08.12.
+    - added the ability to specify the main publication identifier directly,
+    through the "CustomID" basic metadata property (issue #3)
+    - fixed a bug with warning dialog not informing the user of unsaved changes
+    when editing in code view (issue #30)
+    - Sigil is now a universal Mac application (ppc and i386, in 32bit) (issue #5)
+    - implemented a workaround for a bug in QTextCodec causing bad HTML codec detection (issue #74)
+    - SVG elements are not removed anymore (issue #24)
+    - inter-document HTML links are now fully supported (issue #53)
+    - fixed rare issue where CSS style rules could get duplicated when changing views
+    - fixed issue with inline style tags in OPS documents not being loaded (issue #58)
+    - Sigil can now accept a file to load as the first command line argument; this also
+    provides support for "Open With..." operating system features (issue #63)
+    - fixed an issue where the reported build time in the About dialog was actually the execution
+    time (issue #65)
+    - loading of missing files in the recent files list is now improved (issue #57)
+    - fixed a rare issue where the wrong view could be sent to the printer on print actions
+    - Sigil now creates a guide element with a cover page in the OPF if the content of the first
+    OPS document is less than 1000 characters long (issue #48)
+    - support for importing UTF-16 encoded documents (not just UTF-8)
+    - provided install target for linux; the binary is now also named "sigil"
+    (lower case 's') on Unix systems (except Mac) for the sake of convention (issue #46)
+    - removed dependency on "data" directory (issue #51)
+
+Sigil v0.1.1 2009.08.06.
+    - applied provided patch for NetBSD support
+    - fixed issue with loading images in HTML and EPUB docs that have regexp special characters
+    in filenames. (issue #39)
+    - if headings have the 'title' attribute set, it is now used as the TOC text entry. (issue #26)
+    - tags are now removed from headings before they are converted to TOC entries (issue #47)
+    - Sigil now remembers the last folder from which you loaded an image (issue #34)
+    - choosing 'cancel' in TOC editor now no longer forces the views to update
+    - fixed bug with new headings getting existing IDs. (issue #36)
+    - printing support! new file menu actions: "print" and "print preview"
+    - fixed an issue when sometimes switching between views didn't enable/disable appropriate actions
+    - fixed an issue with mixed-up CSS classes on Mac and Linux (issue #16)
+    - added line numbering for Code View (issue #9)
+    - added current line highlighting for Code View 
+    - fixed crashing bug with some calibre generated epubs (issue #16)
+
+Sigil v0.1.0  2009.08.01.
+    - initial release
