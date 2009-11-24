@@ -26,6 +26,7 @@
 #include <QtGui/QMainWindow>
 #include "ui_main.h"
 #include "BookManipulation/Book.h"
+#include <QPointer>
 
 const int MAX_RECENT_FILES = 5;
 
@@ -36,6 +37,7 @@ class BookViewEditor;
 class ViewEditor;
 class QLabel;
 class QSlider;
+class FindReplace;
 
 
 class MainWindow : public QMainWindow
@@ -49,6 +51,9 @@ public:
     // should load (new file loaded if empty); the second is the
     // windows parent; the third specifies the flags used to modify window behaviour
     MainWindow( const QString &openfilepath = QString(), QWidget *parent = 0, Qt::WFlags flags = 0 );
+
+    // Returns the currently active View Editor
+    ViewEditor& GetActiveViewEditor() const;
 
 protected:
 
@@ -87,6 +92,12 @@ private slots:
 
     // Implements Paste action functionality
     void Paste();
+
+    // Implements Find action functionality
+    void Find();
+
+    // Implements Replace action functionality
+    void Replace();
 
     // Implements Bold action functionality
     void Bold();
@@ -259,10 +270,7 @@ private:
     int ZoomFactorToSliderRange( float zoom_factor ) const;
 
     // Converts a value in the zoom slider range to a zoom factor
-    float SliderRangeToZoomFactor( int slider_range_value ) const;
-
-    // Returns the currently active View Editor
-    const ViewEditor* GetActiveViewEditor() const;
+    float SliderRangeToZoomFactor( int slider_range_value ) const;    
 
     // Returns a map with keys being extensions of file types
     // we can load, and the values being filters for use in file dialogs
@@ -365,6 +373,11 @@ private:
     // A map with keys being extensions of file types
     // we can save, and the values being filters for use in file dialogs
     const QMap< QString, QString > c_LoadFilters;
+
+    // A guarded pointer to the FindReplace dialog;
+    // TODO: replace this with QWeakPointer when Qt 4.6
+    // is released and QWP supports QObjects.
+    QPointer<FindReplace> m_FindReplace;
 
     // Holds all the widgets Qt Designer created for us
     Ui::MainWindow ui;
