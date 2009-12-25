@@ -1,0 +1,115 @@
+/************************************************************************
+**
+**  Copyright (C) 2009  Strahinja Markovic
+**
+**  This file is part of Sigil.
+**
+**  Sigil is free software: you can redistribute it and/or modify
+**  it under the terms of the GNU General Public License as published by
+**  the Free Software Foundation, either version 3 of the License, or
+**  (at your option) any later version.
+**
+**  Sigil is distributed in the hope that it will be useful,
+**  but WITHOUT ANY WARRANTY; without even the implied warranty of
+**  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**  GNU General Public License for more details.
+**
+**  You should have received a copy of the GNU General Public License
+**  along with Sigil.  If not, see <http://www.gnu.org/licenses/>.
+**
+*************************************************************************/
+
+#pragma once
+#ifndef FOLDERKEEPER_H
+#define FOLDERKEEPER_H
+
+#include <QString>
+#include <QHash>
+
+class Resource;
+
+class FolderKeeper
+{
+
+public:
+
+    // Constructor
+    FolderKeeper();
+
+    // Copy constructor
+    FolderKeeper( const FolderKeeper& other );
+
+    // Assignment operator
+    FolderKeeper& operator= ( const FolderKeeper& other );
+
+    // Destructor
+    ~FolderKeeper();	
+
+    // A dispatcher function that routes the given *infrastructure* file
+    // to the appropriate specific folder function; the name of the new file
+    // needs to be specified
+    void AddInfraFileToFolder( const QString &fullfilepath, const QString &newfilename );
+
+    // The file is recognized according to its extension.
+    QString AddContentFileToFolder( const QString &fullfilepath, int reading_order = -1 );
+
+    // Returns a list of all the content files in the directory
+    // with a path relative to the OEBPS directory
+    QStringList GetContentFilesList() const;
+
+    QList< Resource* > GetResourceList() const;
+
+    Resource& GetResource( const QString &identifier ) const;
+
+    // Returns the full path to the main folder of the publication
+    QString GetFullPathToMainFolder() const;	
+
+    // Returns the full path to the OEBPS folder of the publication
+    QString GetFullPathToOEBPSFolder() const;	
+
+    // Returns the full path to the OEBPS folder of the publication
+    QString GetFullPathToTextFolder() const;
+
+private:
+
+    // Performs common constructor duties
+    // for all constructors
+    void Initialize();
+
+    void CopyFiles( const FolderKeeper &other );
+
+    void DeleteAllResources( const QString &folderpath );
+
+    // Creates the required folder structure:
+    //	 META-INF
+    //	 OEBPS
+    //	    Images
+    //	    Fonts
+    //	    Text
+    //      Styles
+    //      Misc
+    void CreateFolderStructure();
+
+
+    ///////////////////////////////
+    // PRIVATE MEMBER VARIABLES
+    ///////////////////////////////
+
+    QHash< QString, Resource* > m_Resources;
+
+
+    // Full paths to all the folders in the publication
+    QString m_FullPathToMainFolder;
+    QString m_FullPathToMetaInfFolder;
+    QString m_FullPathToOEBPSFolder;
+
+    QString m_FullPathToImagesFolder;
+    QString m_FullPathToFontsFolder;
+    QString m_FullPathToTextFolder;
+    QString m_FullPathToStylesFolder;
+    QString m_FullPathToMiscFolder;
+};
+
+#endif // FOLDERKEEPER_H
+
+
