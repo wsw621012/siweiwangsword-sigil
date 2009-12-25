@@ -57,8 +57,12 @@ protected:
     // thus something like <a href="chapter01.html#firstheading" />
     // becomes just <a href="#firstheading" />
     void StripFilesFromAnchors();
-
+    
     QString ReadHTMLFile( const QString &fullfilepath );
+
+    // Searches for meta information in the HTML file
+    // and tries to convert it to Dublin Core
+    void LoadMetadata();
 
     // Accepts a hash with keys being old references (URLs) to resources,
     // and values being the new references to those resources.

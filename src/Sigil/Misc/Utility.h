@@ -112,6 +112,8 @@ public:
     //    Bonnie & Clyde
     static QString ResolveHTMLEntities( const QString &text );
 
+    static QString GetEntityEscapedString( const QString &text );
+
     // Returns the same number, but rounded to one decimal place
     static float RoundToOneDecimal( float number );
 

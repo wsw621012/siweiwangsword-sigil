@@ -25,7 +25,7 @@
 
 #include "ImportHTML.h"
 #include "../BookManipulation/FolderKeeper.h"
-
+#include "../BookManipulation/Metadata.h"
 #include <QHash>
 #include <QStringList>
 
@@ -98,23 +98,8 @@ protected:
     // that represent the reading order of the publication
     QStringList m_ReadingOrderIds;
 
-    // Defines the metadata elements in the OPF
-    struct MetaElement
-    {
-        // The name of the element
-        QString name;
-
-        // The value of the element
-        QString value;
-
-        // The attributes of the element;
-        // the keys are the attribute names,
-        // the values are the attribute values
-        QHash< QString, QString > attributes;
-    };
-
     // The list of metadata elements in the OPF
-    QList< MetaElement > m_MetaElements;
+    QList< Metadata::MetaElement > m_MetaElements;
     
 };
 

@@ -38,6 +38,7 @@
 #include "MainUI/FlowTab.h"
 #include "MainUI/TabManager.h"
 
+
 static const int STATUSBAR_MSG_DISPLAY_TIME = 2000;
 static const int TEXT_ELIDE_WIDTH           = 300;
 static const QString SETTINGS_GROUP         = "mainwindow";
@@ -299,6 +300,10 @@ void MainWindow::Replace()
 }
 
 
+
+    // Make sure the Book View has focus before inserting images,
+    // otherwise they are not inserted
+    m_wBookView->GrabFocus();
 // Implements Zoom In action functionality
 void MainWindow::ZoomIn()
 {

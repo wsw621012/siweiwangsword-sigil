@@ -23,6 +23,7 @@
 #ifndef METADATA_H
 #define METADATA_H
 
+
 class Metadata
 {	
 
@@ -30,11 +31,25 @@ public:
 
     struct MetaInfo
     {
-        // The code for the relator (e.g ""aut)
+        // The code for the relator (e.g "aut")
         QString relator_code;
 
         // The description of the relator
         QString description;
+    };
+
+    struct MetaElement
+    {
+        // The name of the element
+        QString name;
+
+        // The value of the element
+        QVariant value;
+
+        // The attributes of the element;
+        // the keys are the attribute names,
+        // the values are the attribute values
+        QHash< QString, QString > attributes;
     };
 
     static Metadata & Instance();
@@ -44,6 +59,9 @@ public:
     const QMap< QString, MetaInfo > & GetBasicMetaMap();
     const QHash< QString, QString > & GetFullRelatorNameHash();
     const QHash< QString, QString > & GetFullLanguageNameHash();
+
+    // Maps Dublic Core metadata to internal book meta format
+    MetaElement MapToBookMetadata( const MetaElement &meta, const QString &type );
 
 private:
 
@@ -60,6 +78,21 @@ private:
     // Loads the relator codes, their full names,
     // and their descriptions from disk
     void LoadRelatorCodes();
+
+    // Converts HTML sourced Dublin Core metadata to OPF style metadata
+    MetaElement HtmlToOpfDC( const MetaElement &meta );
+
+    // Converts free form metadata into internal book metadata
+    MetaElement FreeFormMetadata( const MetaElement &meta );
+
+    // Converts dc:creator and dc:contributor metadata to book internal metadata
+    MetaElement CreateContribMetadata( const MetaElement &meta );
+
+    // Converts dc:date metadata to book internal metadata
+    MetaElement DateMetadata( const MetaElement &meta );
+
+    // Converts dc:identifier metadata to book internal metadata
+    MetaElement IdentifierMetadata( const MetaElement &meta );
 
 
     ///////////////////////////////
@@ -90,6 +123,7 @@ private:
     // the values are the full names of those relators
     // (e.g. aut -> Author )
     QHash< QString, QString > m_FullRelators;
+
 };
 
 #endif // METADATA_H
