@@ -1,0 +1,358 @@
+/************************************************************************
+**
+**  Copyright (C) 2009, 2010  Strahinja Markovic
+**
+**  This file is part of Sigil.
+**
+**  Sigil is free software: you can redistribute it and/or modify
+**  it under the terms of the GNU General Public License as published by
+**  the Free Software Foundation, either version 3 of the License, or
+**  (at your option) any later version.
+**
+**  Sigil is distributed in the hope that it will be useful,
+**  but WITHOUT ANY WARRANTY; without even the implied warranty of
+**  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**  GNU General Public License for more details.
+**
+**  You should have received a copy of the GNU General Public License
+**  along with Sigil.  If not, see <http://www.gnu.org/licenses/>.
+**
+*************************************************************************/
+
+#include <stdafx.h>
+#include "BookManipulation/FolderKeeper.h"
+#include "ResourceObjects/Resource.h"
+#include "Misc/Utility.h"
+
+static const QStringList IMAGE_EXTENSIONS = QStringList() << "jpg"   << "jpeg"  << "png"
+                                                          << "gif"   << "tif"   << "tiff"
+                                                          << "bm"    << "bmp"   << "svg";
+
+static const QStringList FONT_EXTENSIONS  = QStringList() << "ttf"   << "otf";
+const QStringList TEXT_EXTENSIONS         = QStringList() << "xhtml" << "html"  << "htm" << "xml";
+static const QStringList STYLE_EXTENSIONS = QStringList() << "css"   << "xpgt";
+
+const QString IMAGE_FOLDER_NAME = "Images";
+const QString FONT_FOLDER_NAME  = "Fonts";
+const QString TEXT_FOLDER_NAME  = "Text";
+const QString STYLE_FOLDER_NAME = "Styles";
+const QString MISC_FOLDER_NAME  = "Misc";
+
+
+FolderKeeper::FolderKeeper()
+{
+    QDir folder( Utility::GetNewTempFolderPath() );
+    folder.mkpath( folder.absolutePath() );
+
+    m_FullPathToMainFolder = folder.absolutePath();
+
+    CreateFolderStructure();
+}
+
+
+FolderKeeper::~FolderKeeper()
+{
+    if ( m_FullPathToMainFolder.isEmpty() != false )
+
+        return;
+
+    foreach( Resource *resource, m_Resources.values() )
+    {
+        resource->Delete();
+    }
+
+    m_Resources.clear();
+
+    QtConcurrent::run( Utility::DeleteFolderAndFiles, m_FullPathToMainFolder );    
+}
+
+
+void FolderKeeper::AddInfraFileToFolder( const QString &fullfilepath, const QString &newfilename  )
+{
+    if ( newfilename == CONTAINER_XML_FILE_NAME )
+    {
+        QFile::copy( fullfilepath, m_FullPathToMetaInfFolder + "/" + newfilename );
+    }
+
+    else if ( ( newfilename == OPF_FILE_NAME ) || ( newfilename == NCX_FILE_NAME ) )
+    {
+        QFile::copy( fullfilepath, m_FullPathToOEBPSFolder + "/" + newfilename );
+    }
+
+    else
+    {
+        Q_ASSERT( false );
+    }
+}
+
+Resource& FolderKeeper::AddContentFileToFolder( const QString &fullfilepath,
+                                                int reading_order )
+{
+    return AddContentFileToFolder( fullfilepath, reading_order, QHash< QString, QString >() );
+}
+
+
+Resource& FolderKeeper::AddContentFileToFolder( const QString &fullfilepath, 
+                                                int reading_order,
+                                                QHash< QString, QString > semantic_information )
+{
+    if ( !QFileInfo( fullfilepath ).exists() )
+
+        boost_throw( FileDoesNotExist() << errinfo_file_name( fullfilepath.toStdString() ) );
+
+    QString new_file_path;
+    Resource *resource = NULL;
+
+    // We need to lock here because otherwise
+    // several threads can get the same "unique" name.
+    // After we deal with the resource hash, other threads can continue.
+    {
+        QMutexLocker locker( &m_AccessMutex );
+
+        QString filename  = GetUniqueFilenameVersion( QFileInfo( fullfilepath ).fileName() );
+        QString extension = QFileInfo( fullfilepath ).suffix().toLower();
+        QString relative_path;
+
+        if ( IMAGE_EXTENSIONS.contains( extension ) )
+        {
+            new_file_path = m_FullPathToImagesFolder + "/" + filename;
+            relative_path = IMAGE_FOLDER_NAME + "/" + filename;
+
+            resource = new ImageResource( new_file_path, &m_Resources, semantic_information );
+        }
+
+        else if ( FONT_EXTENSIONS.contains( extension ) )
+        {
+            new_file_path = m_FullPathToFontsFolder + "/" + filename;
+            relative_path = FONT_FOLDER_NAME + "/" + filename;
+
+            resource = new FontResource( new_file_path, &m_Resources );
+        }
+
+        else if ( TEXT_EXTENSIONS.contains( extension ) )
+        {
+            new_file_path = m_FullPathToTextFolder + "/" + filename;
+            relative_path = TEXT_FOLDER_NAME + "/" + filename;
+
+            resource = new HTMLResource( new_file_path, &m_Resources, reading_order, semantic_information );
+        }
+
+        else if ( STYLE_EXTENSIONS.contains( extension ) )
+        {
+            new_file_path = m_FullPathToStylesFolder + "/" + filename;
+            relative_path = STYLE_FOLDER_NAME + "/" + filename;
+
+            if ( extension == "css" )
+
+                resource = new CSSResource( new_file_path, &m_Resources );
+
+            else
+
+                resource = new XPGTResource( new_file_path, &m_Resources );
+        }
+
+        else
+        {
+            // Fallback mechanism
+            new_file_path = m_FullPathToMiscFolder + "/" + filename;
+            relative_path = MISC_FOLDER_NAME + "/" + filename;
+
+            resource = new Resource( new_file_path, &m_Resources );
+        }    
+
+        m_Resources[ resource->GetIdentifier() ] = resource;
+    }
+
+    QFile::copy( fullfilepath, new_file_path );
+
+    if ( QThread::currentThread() != QApplication::instance()->thread() )
+
+        resource->moveToThread( QApplication::instance()->thread() );
+
+    return *resource;
+}
+
+
+int FolderKeeper::GetHighestReadingOrder() const
+{
+    int highest_reading_order = -1;
+
+    foreach( Resource *resource, m_Resources.values() )
+    {
+        if ( resource->Type() == Resource::HTMLResource )
+        {
+            HTMLResource* html_resource = qobject_cast< HTMLResource* >( resource );
+
+            Q_ASSERT( html_resource );
+
+            int reading_order = html_resource->GetReadingOrder();
+
+            if ( reading_order > highest_reading_order )
+
+                highest_reading_order = reading_order;
+        }
+    }
+
+    return highest_reading_order;
+}
+
+
+QString FolderKeeper::GetUniqueFilenameVersion( const QString &filename ) const
+{
+    const QStringList &filenames = GetAllFilenames();
+
+    if ( !filenames.contains( filename ) )
+
+        return filename;
+
+    // name_prefix is part of the name without the number suffix.
+    // So for "Section0001.xhtml", it is "Section"
+    QString name_prefix = QFileInfo( filename ).baseName().remove( QRegExp( "\\d+$" ) );
+    QString extension   = QFileInfo( filename ).completeSuffix();
+    
+    // Used to search for the filename number suffixes.
+    QString search_string = QRegExp::escape( name_prefix ).prepend( "^" ) + 
+                            "(\\d*)" +
+                            ( !extension.isEmpty() ? ( "\\." + QRegExp::escape( extension ) ) : QString() ) + 
+                            "$";
+
+    QRegExp filename_search( search_string );
+
+    int max_num_length = -1;
+    int max_num = -1;
+
+    foreach( QString existing_file, filenames )
+    {
+        if ( existing_file.indexOf( filename_search ) == -1 )
+
+            continue;
+        
+        bool conversion_successful = false; 
+        int number_suffix = filename_search.cap( 1 ).toInt( &conversion_successful );
+
+        if ( conversion_successful && number_suffix > max_num )
+        {
+            max_num = number_suffix;
+            max_num_length = filename_search.cap( 1 ).length();
+        }
+    }
+
+    if ( max_num == -1 )
+    {
+        max_num = 0;
+        max_num_length = 4;
+    }
+
+    const int conversion_base = 10;
+
+    QString new_name = name_prefix + QString( "%1" ).arg( max_num + 1, 
+                                                          max_num_length, 
+                                                          conversion_base, 
+                                                          QChar( '0' ) );
+
+    return new_name + ( !extension.isEmpty() ? ( "." + extension ) : QString() );
+}
+
+
+QStringList FolderKeeper::GetSortedContentFilesList() const
+{
+    QStringList filelist;
+
+    foreach( Resource* resource, m_Resources.values() )
+    {
+        filelist.append( resource->GetRelativePathToOEBPS() );
+    }
+    
+    filelist.sort();
+    return filelist;
+}
+
+
+QList< Resource* > FolderKeeper::GetResourceList() const
+{
+    return m_Resources.values();
+}
+
+
+Resource& FolderKeeper::GetResourceByIdentifier( const QString &identifier ) const
+{
+    return *m_Resources[ identifier ];
+}
+
+
+Resource& FolderKeeper::GetResourceByFilename( const QString &filename ) const
+{
+    foreach( Resource *resource, m_Resources.values() )
+    {
+        if ( resource->Filename() == filename )
+
+            return *resource;
+    }
+
+    boost_throw( ResourceDoesNotExist() << errinfo_resource_name( filename.toStdString() ) );
+}
+
+
+QString FolderKeeper::GetFullPathToMainFolder() const
+{
+    return m_FullPathToMainFolder;
+}
+
+
+QString FolderKeeper::GetFullPathToOEBPSFolder() const
+{
+    return m_FullPathToOEBPSFolder;
+}
+
+
+QString FolderKeeper::GetFullPathToTextFolder() const
+{
+    return m_FullPathToTextFolder;
+}
+
+
+QStringList FolderKeeper::GetAllFilenames() const
+{
+    QStringList filelist;
+
+    foreach( Resource* resource, m_Resources.values() )
+    {
+        filelist.append( resource->Filename() );
+    }
+
+    return filelist;
+}
+
+
+// The required folder structure is this:
+//	 META-INF
+//	 OEBPS
+//	    Images
+//	    Fonts
+//	    Text
+//      Styles
+//      Misc
+void FolderKeeper::CreateFolderStructure()
+{
+    QDir folder( m_FullPathToMainFolder );
+
+    folder.mkdir( "META-INF" );
+    folder.mkdir( "OEBPS"    );
+
+    folder.mkpath( "OEBPS/" + IMAGE_FOLDER_NAME );
+    folder.mkpath( "OEBPS/" + FONT_FOLDER_NAME  );
+    folder.mkpath( "OEBPS/" + TEXT_FOLDER_NAME  );
+    folder.mkpath( "OEBPS/" + STYLE_FOLDER_NAME );
+    folder.mkpath( "OEBPS/" + MISC_FOLDER_NAME  );
+
+    m_FullPathToMetaInfFolder = m_FullPathToMainFolder + "/META-INF";
+    m_FullPathToOEBPSFolder   = m_FullPathToMainFolder + "/OEBPS";
+
+    m_FullPathToImagesFolder  = m_FullPathToOEBPSFolder + "/" + IMAGE_FOLDER_NAME;
+    m_FullPathToFontsFolder   = m_FullPathToOEBPSFolder + "/" + FONT_FOLDER_NAME;
+    m_FullPathToTextFolder    = m_FullPathToOEBPSFolder + "/" + TEXT_FOLDER_NAME;
+    m_FullPathToStylesFolder  = m_FullPathToOEBPSFolder + "/" + STYLE_FOLDER_NAME;
+    m_FullPathToMiscFolder    = m_FullPathToOEBPSFolder + "/" + MISC_FOLDER_NAME;
+}
+
+
